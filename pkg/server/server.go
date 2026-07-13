@@ -163,13 +163,14 @@ func (s *Server) Run() error {
 func (s *Server) Status() ([]byte, error) {
 	status := map[string]interface{}{
 		"CpuLoad": s.monitor.GetAvailableCPU(),
+		"NodeId":  s.conf.NodeID,
 	}
 	s.GetStatus(status)
 	return json.Marshal(status)
 }
 
 func (s *Server) IsIdle() bool {
-	return s.activeRequests.Load() == 0
+	return s.activeRequests.Load() == 0 && !s.IsDisabled()
 }
 
 func (s *Server) IsDisabled() bool {
