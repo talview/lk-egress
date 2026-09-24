@@ -202,12 +202,19 @@ func (s *Server) Shutdown(terminating, kill bool) {
 }
 
 func (s *Server) Drain() {
-	for !s.IsIdle() {
-		time.Sleep(time.Second)
-	}
+	s.waitForActiveRequests()
 
 	s.psrpcServer.Shutdown()
 	s.handlerProxy.Shutdown()
 	logger.Infow("draining io client")
 	s.ioClient.Drain()
+}
+
+// waitForActiveRequests blocks until no egress requests are running.
+// It must not use IsIdle: IsIdle is false while shutdown is broken, which is
+// always the case during Drain, so waiting on it never returns (SRE-5507).
+func (s *Server) waitForActiveRequests() {
+	for s.activeRequests.Load() > 0 {
+		time.Sleep(time.Second)
+	}
 }
